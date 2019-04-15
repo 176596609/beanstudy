@@ -54,7 +54,7 @@ main(int argc, char **argv)
 
     progname = argv[0];
     setlinebuf(stdout);
-    optparse(&srv, argv+1);//解析输入参数
+    optparse(&srv, argv+1);//解析输入参数 gittest
 
     if (verbose) {
         printf("pid %d\n", getpid());
