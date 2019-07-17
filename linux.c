@@ -26,7 +26,7 @@ rawfalloc(int fd, int len)
 int
 sockinit(void)
 {
-    epfd = epoll_create(1);
+    epfd = epoll_create(1);//创建epoll  epfd是全局变量
     if (epfd == -1) {
         twarn("epoll_create");
         return -1;
@@ -41,15 +41,15 @@ sockwant(Socket *s, int rw)//epool监听的时间
     int op;
     struct epoll_event ev = {};
 
-    if (!s->added && !rw) {
+    if (!s->added && !rw) {//没有被添加过  然后rw=0 其实是非法的 返回0
         return 0;
-    } else if (!s->added && rw) {
+    } else if (!s->added && rw) {//如果没有被添加过 那么标记为已经添加 将socket添加到epool队列
         s->added = 1;
         op = EPOLL_CTL_ADD;
     } else if (!rw) {
-        op = EPOLL_CTL_DEL;
+        op = EPOLL_CTL_DEL;//如果已经添加了  现在rw=0 那么从epoll里面删除
     } else {
-        op = EPOLL_CTL_MOD;
+        op = EPOLL_CTL_MOD;//如果已经添加了 现在rw!=0 那么说明是修改
     }
 
     switch (rw) {
@@ -73,7 +73,7 @@ socknext(Socket **s, int64 timeout)
     int r;
     struct epoll_event ev;
 
-    r = epoll_wait(epfd, &ev, 1, (int)(timeout/1000000));
+    r = epoll_wait(epfd, &ev, 1, (int)(timeout/1000000));//从epoll就绪队列里面取出一个进行处理
     if (r == -1 && errno != EINTR) {
         twarn("epoll_wait");
         exit(1);

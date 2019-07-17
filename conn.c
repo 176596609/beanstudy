@@ -28,7 +28,7 @@ on_ignore(ms a, tube t, size_t i)
 }
 
 Conn *
-make_conn(int fd, char start_state, tube use, tube watch)
+make_conn(int fd, char start_state, tube use, tube watch)//start_state 初始状态 状态机    use 给生产者用的 往哪个tube里面生产  watch给消费者用的 消费者监控哪个tube 注意一个消费者可以监控多个tube
 {
     job j;
     Conn *c;

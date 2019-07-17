@@ -47,7 +47,7 @@ ms_delete(ms a, size_t i)//集合删除一个元素
 
     if (i >= a->used) return 0;
     item = a->items[i];//取第i个元素
-    a->items[i] = a->items[--a->used];//覆盖第i个元素  也就是删除第i个元素  集合总数减1
+    a->items[i] = a->items[--a->used];//用最后一个元素 覆盖第i个元素  也就是删除第i个元素  集合总数减1  这是个小技巧，避免数组的整个内存移动。也符合集合的概念
 
     /* it has already been removed now */
     if (a->onremove) a->onremove(a, item, i);

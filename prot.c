@@ -245,7 +245,7 @@ static char id[NumIdBytes * 2 + 1]; // hex-encoded len of NumIdBytes
 static struct utsname node_info;
 static uint64 op_ct[TOTAL_OPS], timeout_ct = 0;//记录某条命令执行了多少次
 
-static Conn *dirty;
+static Conn *dirty;//看起来是一个全局的链表
 
 static const char * op_names[] = {
     "<unknown>",
@@ -1906,7 +1906,7 @@ prottick(Server *s)
 }
 
 void
-h_accept(const int fd, const short which, Server *s)
+h_accept(const int fd, const short which/*读还是写 这儿没有使用*/, Server *s/*指向全局的srv*/)
 {
     Conn *c;
     int cfd, flags, r;
@@ -1914,7 +1914,7 @@ h_accept(const int fd, const short which, Server *s)
     struct sockaddr_in6 addr;
 
     addrlen = sizeof addr;
-    cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);//获取客户端的fd   这个时候三次握手已经完成
+    cfd = accept(fd, (struct sockaddr *)&addr, &addrlen);//获取客户端的fd   这个时候三次握手已经完成 cfd是客户端的通信fd
     if (cfd == -1) {
         if (errno != EAGAIN && errno != EWOULDBLOCK) twarn("accept()");
         update_conns();
@@ -1977,7 +1977,7 @@ h_accept(const int fd, const short which, Server *s)
 void
 prot_init()
 {
-    started_at = nanoseconds();
+    started_at = nanoseconds();//纳秒
     memset(op_ct, 0, sizeof(op_ct));
 
     int dev_random = open("/dev/urandom", O_RDONLY);

@@ -88,9 +88,9 @@ void* heapremove(Heap *h, int k);
 
 struct Socket {
     int    fd;
-    Handle f;
+    Handle f;//fd的处理函数
     void   *x;
-    int    added;
+    int    added;//该fd是否已经添加到epoll里面
 };
 int sockinit(void);
 int sockwant(Socket*, int);
@@ -265,7 +265,7 @@ int make_server_socket(char *host_addr, char *port);
 struct Conn {
     Server *srv;//执行服务器
     Socket sock;//客户端socket
-    char   state;//STATE_WANTCOMMAND  STATE_WANTDATA ...等状态
+    char   state;//STATE_WANTCOMMAND  STATE_WANTDATA ...等状态  状态机标记
     char   type;//CONN_TYPE_PRODUCER CONN_TYPE_WORKER 还是CONN_TYPE_WAITING
     Conn   *next;// 下一个Conn的指针
     tube   use;//指向当前使用的tube put命令发布的job会插入到当前tube中
@@ -374,8 +374,8 @@ int  filewrjobfull(File*, job);
 #define Portdef "11300"
 
 struct Server {
-    char *port;
-    char *addr;
+    char *port;//端口
+    char *addr;//地址
     char *user;
 
     Wal    wal;
