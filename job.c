@@ -7,7 +7,7 @@ static uint64 next_id = 1;
 
 static int cur_prime = 0;
 
-static job all_jobs_init[12289] = {0};//job哈希表  为的是较快的找到一个id job，O（1）时间范围内找到job 以为装载因子是4 所以平均查找2次
+static job all_jobs_init[12289] = {0};//job哈希表  为的是较快的找到一个id job，O（1）时间范围内找到job 因为装载因子是4 所以平均查找2次
 static job *all_jobs = all_jobs_init;
 static size_t all_jobs_cap = 12289; /* == primes[0] */
 static size_t all_jobs_used = 0;

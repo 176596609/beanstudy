@@ -211,8 +211,8 @@ connrec(Conn *c, int i)
 void
 connclose(Conn *c)
 {
-    sockwant(&c->sock, 0);
-    close(c->sock.fd);
+    sockwant(&c->sock, 0);//É¾³ýepool¼àÌýÊÂ¼þ 
+    close(c->sock.fd);//¹Ø±Õsocket
     if (verbose) {
         printf("close %d\n", c->sock.fd);
     }

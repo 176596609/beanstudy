@@ -85,7 +85,7 @@ ms_contains(ms a, void *item)//检查集合中是否有某个特定元素
 }
 
 void *
-ms_take(ms a)  //ms_take：将客户端从此job所属tube的waiting集合中删除；并返回客户端conn
+ms_take(ms a)  //ms_take：获取集合中的下一个元素 并在集合中删除
 {
     void *item;
 

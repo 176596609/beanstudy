@@ -284,7 +284,7 @@ buried_job_p(tube t)//·µ»Øµ±Ç°tube buriedµÄÈÎÎñ
 }
 
 static void
-reply(Conn *c, char *line, int len, int state)//µ÷ÓÃreplyº¯Êı£»Ö»ÊÇ½«Êı¾İĞ´Èëµ½Êä³ö»º³åÇø£¬²¢ĞŞ¸ÄÁË¿Í»§¶Ë×´Ì¬Îª
+reply(Conn *c, char *line, int len, int state)//µ÷ÓÃreplyº¯Êı£»Ö»ÊÇ½«Êı¾İĞ´Èëµ½Êä³ö»º³åÇø£¬²¢ĞŞ¸ÄÁË¿Í»§¶Ë×´Ì¬Îª  
 {
     if (!c) return;
 
@@ -294,7 +294,7 @@ reply(Conn *c, char *line, int len, int state)//µ÷ÓÃreplyº¯Êı£»Ö»ÊÇ½«Êı¾İĞ´Èëµ½Ê
     c->reply = line;//Êä³öÊı¾İ»º³åÇø
     c->reply_len = len;
     c->reply_sent = 0;
-    c->state = state;//ÉèÖÃconn×´Ì¬
+    c->state = state;//ÉèÖÃconn×´Ì¬»úµÄ×´Ì¬Îªstate
     if (verbose >= 2) {
         printf(">%d reply %.*s\n", c->sock.fd, len-2, line);
     }
@@ -302,7 +302,7 @@ reply(Conn *c, char *line, int len, int state)//µ÷ÓÃreplyº¯Êı£»Ö»ÊÇ½«Êı¾İĞ´Èëµ½Ê
 
 
 static void
-protrmdirty(Conn *c)
+protrmdirty(Conn *c)//¿Í»§¶Ë¹Ø±Õ Õª³ıµ±Ç°½Úµã
 {
     Conn *x, *newdirty = NULL;
 
@@ -703,12 +703,12 @@ peek_job(uint64 id)
 static void
 check_err(Conn *c, const char *s)
 {
-    if (errno == EAGAIN) return;
-    if (errno == EINTR) return;
-    if (errno == EWOULDBLOCK) return;
+    if (errno == EAGAIN) return;//Õâ¸ö·µ»ØĞèÒªÖØĞÂ¶ÁÈ¡
+    if (errno == EINTR) return;//Õâ¸öÊÇËµÔÚ¶ÁÈ¡µÄÖĞ¼ä±»ĞÅºÅÖĞ¶ÏÁË ĞèÒªÖØĞÂ¶ÁÈ¡
+    if (errno == EWOULDBLOCK) return;//Í¬EAGAIN  windowsÉÏ·µ»ØEWOULDBLOCK
 
     twarn("%s", s);
-    c->state = STATE_CLOSE;
+    c->state = STATE_CLOSE;//ËµÃ÷³öÏÖ´íÎóÁË ĞèÒª¹Ø±ÕÌ×½Ó×Ö  ĞŞ¸Ä×´Ì¬»ú±ê¼Ç
     return;
 }
 
@@ -719,11 +719,11 @@ scan_line_end(const char *s, int size)
 {
     char *match;
 
-    match = memchr(s, '\r', size - 1);
+    match = memchr(s, '\r', size - 1);//¼ì²éÊÇ·ñ¶ÁÈ¡µ½ÁË\r
     if (!match) return 0;
 
     /* this is safe because we only scan size - 1 chars above */
-    if (match[1] == '\n') return match - s + 2;
+    if (match[1] == '\n') return match - s + 2;//¼ì²é\rºóÃæÊÇ·ñ¸ú×Å\n  ÊÇµÄ»°·µ»Øµ±Ç°ÃüÁîĞĞµÄ³¤¶È °üÀ¨\r\n
 
     return 0;
 }
@@ -792,7 +792,7 @@ fill_extra_data(Conn *c)//½âÎö¿Í»§¶Ë·¢À´µÄÈÎÎñÊı¾İ£¬´æ´¢ÔÚc->in_jobµÄbodyÊı¾İ×Ö¶
     }
 
     /* how many bytes are left to go into the future cmd? */
-    cmd_bytes = extra_bytes - job_data_bytes;//Èç¹ûextra_bytes>job_data_bytes  cmd_bytes¾ÍÊÇÏÂ¸öÃüÁîµÄ
+    cmd_bytes = extra_bytes - job_data_bytes;//Èç¹ûextra_bytes>job_data_bytes  cmd_bytes¾ÍÊÇÏÂ¸öÃüÁîµÄÊäÈëÁË
     memmove(c->cmd, c->cmd + c->cmd_len + job_data_bytes, cmd_bytes);
     c->cmd_read = cmd_bytes;
     c->cmd_len = 0; /* we no longer know the length of the new command */
@@ -1520,7 +1520,7 @@ dispatch_cmd(Conn *c)
         op_ct[type]++;
         do_list_tubes(c, &c->watch);
         break;
-    case OP_USE://Ê¹ÓÃÖ¸¶¨µÄtube Èç¹ûÃ»ÓĞÕâ¸ötube£¬ÄÇÃ´¾Í´´½¨Õâ¸ötube£¬·ÅÈëtube ms      useºÍusingÃüÁî£¬Ó°ÏìµÄÊÇput²Ù×÷¡£¶øÇÒÖ»ÄÜÓĞÒ»¸ötube±»use¡£
+    case OP_USE://Ê¹ÓÃÖ¸¶¨µÄtube Èç¹ûÃ»ÓĞÕâ¸ötube£¬ÄÇÃ´¾Í´´½¨Õâ¸ötube£¬·ÅÈëtube ms      useºÍusingÃüÁî£¬Ó°ÏìµÄÊÇput²Ù×÷¡£¶øÇÒÖ»ÄÜÓĞÒ»¸ötube±»use¡£Éú²úÕß²ÉÓÃÕâ¸öÃüÁî Ïû·ÑÕßÓÃµÄÊÇwatch
         name = c->cmd + CMD_USE_LEN;
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;//¼ÇÂ¼ÃüÁî±»Ö´ĞĞÁË¶àÉÙ´Î
@@ -1686,24 +1686,24 @@ conn_data(Conn *c)//¿Í»§¶ËÊı¾İ½»»¥£¨¸ù¾İ¿Í»§¶Ë×´Ì¬²»Í¬Ö´ĞĞ²»Í¬µÄ¶ÁĞ´²Ù×÷£©
     case STATE_WANTCOMMAND:
         r = read(c->sock.fd, c->cmd + c->cmd_read, LINE_BUF_SIZE - c->cmd_read);//¶ÁÈ¡ÃüÁîµ½ÊäÈë»º³åÇøcmd
         if (r == -1) return check_err(c, "read()");
-        if (r == 0) {
+        if (r == 0) {//ËµÃ÷ÖÕ¶ËÒÑ¾­closeÁË
             c->state = STATE_CLOSE;
             return;
         }
 
-        c->cmd_read += r; /* we got some bytes */
+        c->cmd_read += r; /* we got some bytes ÎÒÃÇ¶ÁÈ¡µ½ÁË r×Ö½ÚÊı¾İ */
 
-        c->cmd_len = cmd_len(c); /* find the EOL */ //¶¨Î»\r\n£¬²¢·µ»ØÃüÁîÇëÇó¿ªÊ¼Î»ÖÃµ½\r\n³¤¶È£»Èç¹ûÃ»ÓĞ\r\nËµÃ÷ÃüÁîÇëÇó²»ÍêÈ«£¬·µ»Ø0
+        c->cmd_len = cmd_len(c); /* find the EOL */ //¶¨Î»\r\n£¬²¢·µ»ØÃüÁîÇëÇó¿ªÊ¼Î»ÖÃµ½\r\n³¤¶È£»Èç¹ûÃ»ÓĞ\r\nËµÃ÷ÃüÁîÇëÇó²»ÍêÈ«£¬·µ»Ø0  Ğ­Òé¸ñÊ½ÔÚprotocol.mdÀïÃæÓĞËµÃ÷
 
         /* yay, complete command line */
-        if (c->cmd_len) return do_cmd(c);//Èç¹û¶ÁÈ¡ÍêÕûµÄÃüÁî£¬Ôò´¦Àí£»·ñÔòÒâÎ¶×ÅÃüÁî²»ÍêÈ«£¬ĞèÒªÏÂ´Î¼ÌĞø½ÓÊÕ    
+        if (c->cmd_len) return do_cmd(c);//Èç¹û¶ÁÈ¡ÍêÕûµÄÃüÁî£¬Ôò´¦Àí£»·ñÔòÒâÎ¶×ÅÃüÁî²»ÍêÈ«£¬ĞèÒªÏÂ´Î¼ÌĞø½ÓÊÕ    c->cmd_len>0±íÊ¾ÒÑ¾­¶ÁÈ¡ÍêÁË   
 
         /* c->cmd_read > LINE_BUF_SIZE can't happen */
 
         /* command line too long? */
         if (c->cmd_read == LINE_BUF_SIZE) {
-            c->cmd_read = 0; /* discard the input so far */
-            return reply_msg(c, MSG_BAD_FORMAT);
+            c->cmd_read = 0; /* discard the input so far Èç¹ûÃüÁîĞĞ¶ÁÈ¡Ì«³¤£¬ÄÇÃ´¾ÍÈÓµô£¬ÖØĞÂ¶Á*/
+            return reply_msg(c, MSG_BAD_FORMAT);//¸ø¿Í»§¶Ë·µ»Ø´íÎóÏûÏ¢
         }
 
         /* otherwise we have an incomplete line, so just keep waiting */
@@ -1746,7 +1746,7 @@ conn_data(Conn *c)//¿Í»§¶ËÊı¾İ½»»¥£¨¸ù¾İ¿Í»§¶Ë×´Ì¬²»Í¬Ö´ĞĞ²»Í¬µÄ¶ÁĞ´²Ù×÷£©
     case STATE_SENDWORD:
         r= write(c->sock.fd, c->reply + c->reply_sent, c->reply_len - c->reply_sent);
         if (r == -1) return check_err(c, "write()");
-        if (r == 0) {
+        if (r == 0) {//ËµÃ÷ÖÕ¶ËÒÑ¾­¶Ï¿ªÁ¬½ÓÁË
             c->state = STATE_CLOSE;
             return;
         }
@@ -1755,11 +1755,11 @@ conn_data(Conn *c)//¿Í»§¶ËÊı¾İ½»»¥£¨¸ù¾İ¿Í»§¶Ë×´Ì¬²»Í¬Ö´ĞĞ²»Í¬µÄ¶ÁĞ´²Ù×÷£©
 
         /* (c->reply_sent > c->reply_len) can't happen */
 
-        if (c->reply_sent == c->reply_len) return reset_conn(c);//Èç¹ûjobµÄÊı¾İÒÑ¾­·¢Íê£¬ÔòÖØÖÃ¿Í»§¶Ërw£¬¹ØĞÄ¿É¶ÁÊÂ¼ş£»·ñÔò¼ÌĞø´ı·¢ËÍjob
+        if (c->reply_sent == c->reply_len) return reset_conn(c);//Èç¹ûjobµÄÊı¾İÒÑ¾­·¢Íê£¬ÔòÖØÖÃ¿Í»§¶ËÎª¶ÁÈ¡ ×´Ì¬»ú¸ÄÎªwant_cmd£¬¹ØĞÄ¿É¶ÁÊÂ¼ş£»·ñÔò¼ÌĞø´ı·¢ËÍjob
 
         /* otherwise we sent an incomplete reply, so just keep waiting */
         break;
-    case STATE_SENDJOB:
+    case STATE_SENDJOB://Êµ¼ÊÖ±½Ó·¢ËÍµÄ¾ÍÊÇ RESERVED <id> <bytes>\r\n<data>\r\n  ·ÅÔÚÁ½¸ö²ÎÊıÀïÃæ·¢ËÍ
         j = c->out_job;
 
         iov[0].iov_base = (void *)(c->reply + c->reply_sent);
@@ -1824,7 +1824,7 @@ update_conns()//update_conns¸ºÔğ¸üĞÂ¿Í»§¶ËsocketµÄÊÂ¼şµ½epoll£»ÆäÔÚÃ¿´ÎÑ­»·¿ªÊ¼£
 }
 
 static void
-h_conn(const int fd, const short which, Conn *c)
+h_conn(const int fd/*¿Í»§¶ËµÄfd*/, const short which/*¶Á»¹ÊÇĞ´...*/, Conn *c/*¿Í»§¶ËÖ¸Õë*/)
 {
     if (fd != c->sock.fd) {
         twarnx("Argh! event fd doesn't match conn fd.");
@@ -1848,7 +1848,7 @@ h_conn(const int fd, const short which, Conn *c)
 }
 
 static void
-prothandle(Conn *c, int ev)
+prothandle(Conn *c, int ev/*¶Á»¹ÊÇĞ´....*/)
 {
     h_conn(c->sock.fd, ev, c);
 }
@@ -1961,7 +1961,7 @@ h_accept(const int fd, const short which/*¶Á»¹ÊÇĞ´ Õâ¶ùÃ»ÓĞÊ¹ÓÃ*/, Server *s/*Ö¸
     c->sock.f = (Handle)prothandle;//ÉèÖÃ¿Í»§¶Ë´¦Àíº¯Êı
     c->sock.fd = cfd;// ÉèÖÃsock.fdÃèÊö·ûµÄÖµÎªcfd
 
-    r = sockwant(&c->sock, 'r');//epoll×¢²á£¬¼àÌı¿É¶ÁÊÂ¼ş
+    r = sockwant(&c->sock, 'r');//epoll×¢²á£¬¶ÔÃ¿¸ö¿Í»§¶Ë¼àÌı¿É¶ÁÊÂ¼ş
     if (r == -1) {
         twarn("sockwant");
         close(cfd);

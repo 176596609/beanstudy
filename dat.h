@@ -45,7 +45,7 @@ typedef int(FAlloc)(int, int);
 /* A command can be at most LINE_BUF_SIZE chars, including "\r\n". This value
  * MUST be enough to hold the longest possible command or reply line, which is
  * currently "USING a{200}\r\n". */
-#define LINE_BUF_SIZE 208
+#define LINE_BUF_SIZE 208//命令最大也就这么大了
 
 /* CONN_TYPE_* are bit masks */
 #define CONN_TYPE_PRODUCER 1//客户端是个消费者
@@ -75,10 +75,10 @@ struct stats {
 };
 
 
-struct Heap {
+struct Heap {//存储的内容只是指针
     int     cap;//堆可以容纳的数量
     int     len;//堆当前的大小
-    void    **data;
+    void    **data;//堆数组
     Less    less;// 入堆时需要用到less函数，来和堆中的父节点进行值的比较
     Record  rec;// 设置堆数组中的index的值
 };
@@ -96,7 +96,7 @@ int sockinit(void);
 int sockwant(Socket*, int);
 int socknext(Socket**, int64);
 
-struct ms {//可以理解成一个集合  一个数组
+struct ms {//可以理解成一个集合  一个数组  存储的内容就是指针
     size_t used, cap, last;
     void **items;
     ms_event_fn oninsert, onremove;
@@ -158,7 +158,7 @@ struct tube {
     char name[MAX_TUBE_NAME_LEN];//名称
     Heap ready;//存储状态未ready的job，按照优先级排序
     Heap delay;//存储状态未delayed的job，按照到期时间排序
-    struct ms waiting; /* set of conns *///等待当前tube有job产生的消费者集合
+    struct ms waiting; /* set of conns *///等待当前tube有job产生的消费者的集合
     struct stats stat;//登记状态的结构体
     uint using_ct;//应该是当前tube上等待的客户端链接数 
     uint watching_ct;//watch的个数
@@ -268,7 +268,7 @@ struct Conn {
     char   state;//STATE_WANTCOMMAND  STATE_WANTDATA ...等状态  状态机标记
     char   type;//CONN_TYPE_PRODUCER CONN_TYPE_WORKER 还是CONN_TYPE_WAITING
     Conn   *next;// 下一个Conn的指针
-    tube   use;//指向当前使用的tube put命令发布的job会插入到当前tube中
+    tube   use;//指向当前使用的tube put命令发布的job会插入到当前tube中  一个客户肯定use一个tube 默认是default tube
     int64  tickat;      // time at which to do more work     //客户端处理job的TTR到期时间；或者客户端阻塞的到期时间；
     int    tickpos;     // position in srv->conns   // 在srv->conns堆里的位置  //c->tickpos记录当前客户端在srv->conns堆的索引；（思考：tickpos在什么时候赋值的？heap的函数指针rec）
     job    soonest_job; // memoization of the soonest job  记录了j->r.deadline_at最小的那个job  应该是ttr最早要过期的job
@@ -282,7 +282,7 @@ struct Conn {
 
     char *reply;//输出数据缓冲区
     int  reply_len;//输出数据缓存区的长度
-    int  reply_sent;//输出缓存区已经发给客户端数据的长度
+    int  reply_sent;//输出缓存区已经发给客户端数据的长度 如果reply_sent==reply_len那么说明发送完毕了
     char reply_buf[LINE_BUF_SIZE]; // this string IS NUL-terminated
 
     // How many bytes of in_job->body have been read so far. If in_job is NULL
