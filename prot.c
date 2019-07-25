@@ -1332,17 +1332,17 @@ dispatch_cmd(Conn *c)
         wait_for_job(c, timeout); //设置当前客户端正在等待job  该函数的功能是：修改当前连接的状态为STATE_WAIT，并把该连接添加到，watch的tube的waiting数组中。然后把当前连接添加到dirty链表中。
         process_queue();
         break;
-    case OP_DELETE:
+    case OP_DELETE://beanstalked删除其实 使用了哈希表来加快速度 通过id找到job 然后分别从 reserve reday buried delayed里面删除（从大顶堆或者链表里面删除）链表因为是双向链表 所以删除是O(1)  堆里面删除因为job记录了在队里的索引 所以删除也是O(1) 当然堆得调整排除在外
         errno = 0;
         id = strtoull(c->cmd + CMD_DELETE_LEN, &end_buf, 10); // 获取参数：job id
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
         op_ct[type]++;
 
         j = job_find(id);  //从全局job的hash表all_jobs中查找对应job id的job实体
-        j = remove_reserved_job(c, j) ? :
-            remove_ready_job(j) ? :
-            remove_buried_job(j) ? :
-            remove_delayed_job(j);
+        j = remove_reserved_job(c, j) ? ://先查看这个job是不是被当前的客户端reserve了 是的话直接在reserve里面删除
+            remove_ready_job(j) ? ://检查是不是在reday队列里面 是的话也删除
+            remove_buried_job(j) ? ://检查是不是在buried队列里面是的话也删除
+            remove_delayed_job(j);//检查是不是在delayed队列里面 是的话删除
 
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
