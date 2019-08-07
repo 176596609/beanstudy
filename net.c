@@ -11,7 +11,7 @@
 #include "sd-daemon.h"
 
 int
-make_server_socket(char *host, char *port)
+make_server_socket(char *host, char *port)//创建服务器
 {
     int fd = -1, flags, r;
     struct linger linger = {0, 0};

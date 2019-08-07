@@ -85,7 +85,7 @@ ms_contains(ms a, void *item)//检查集合中是否有某个特定元素
 }
 
 void *
-ms_take(ms a)  //ms_take：获取集合中的下一个元素 并在集合中删除
+ms_take(ms a)  //ms_take：获取集合中的下一个元素 并在集合中删除  说白了 就是从集合里面取出一个元素 并删除
 {
     void *item;
 

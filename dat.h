@@ -135,7 +135,7 @@ struct Jobrec {
 };
 
 struct job {
-    Jobrec r; // persistent fields; these get written to the wal
+    Jobrec r; // persistent fields; these get written to the wal   其实这个地方才是真正保存job的地方
 
     /* bookeeping fields; these are in-memory only */
     char pad[6];
@@ -146,7 +146,7 @@ struct job {
     File *file;
     job  fnext;
     job  fprev;
-    void *reserver;//记录job当前消费者是谁
+    void *reserver;//记录job当前消费者是谁，也就是谁reserver了这个job
     int walresv;
     int walused;
 
@@ -290,13 +290,13 @@ struct Conn {
     // in_job_read's meaning is inverted -- then it counts the bytes that
     // remain to be thrown away.
     int in_job_read;//put命令发布job时，从客户端已经读入的job body的字节数
-    job in_job; // a job to be read from the client   已经读取的job缓存
+    job in_job; // a job to be read from the client   正在读取进入的job缓存
 
     job out_job;// 待返回给客户端的job
     int out_job_sent;
 
     struct ms  watch;//当前客户端监听的所有tube集合
-    struct job reserved_jobs; // linked list header 这个链表是当前消费者已经获取ready的job
+    struct job reserved_jobs; // linked list header 这个链表是当前消费者已经获取ready的job   也就是用户获取正在处理但是还没有删除的job
 };
 int  connless(Conn *a, Conn *b);
 void connrec(Conn *c, int i);

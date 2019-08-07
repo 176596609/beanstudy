@@ -405,7 +405,7 @@ next_eligible_job(int64 now)//±éÀúËùÓĞtube£¬µ±tubeÓĞ¿Í»§¶ËµÈ´ı£¬ÇÒÓĞready×´Ì¬µÄj
             t->pause = 0;
         }
         if (t->waiting.used && t->ready.len) {//tubeµÄwaiting¼¯ºÏÓĞÔªËØËµÃ÷ÓĞ¿Í»§¶ËÕıÔÚ×èÈûµÈ´ı´Ëtube²úÉúÈÎÎñ£»ÓĞready×´Ì¬µÄÈÎÎñ
-            candidate = t->ready.data[0];
+            candidate = t->ready.data[0];//¶ÑÀïÃæµÄµÚÒ»¸ö±ØÈ»ÊÇÓÅÏÈ¼¶×î¸ßµÄ
             if (!j || job_pri_less(candidate, j)) {
                 j = candidate;
             }
@@ -781,11 +781,11 @@ fill_extra_data(Conn *c)//½âÎö¿Í»§¶Ë·¢À´µÄÈÎÎñÊı¾İ£¬´æ´¢ÔÚc->in_jobµÄbodyÊı¾İ×Ö¶
     extra_bytes = c->cmd_read - c->cmd_len;//³ıÁËÃüÁî¶Î£¬¶îÍâ¶ÁÈ¡µÄ×Ö½Ú ÆäÊµ¾ÍÊÇbody
 
     /* how many bytes should we put into the job body? */
-    if (c->in_job) {
+    if (c->in_job) {//Èç¹ûin_job²»Îª¿Õ£¬ËµÃ÷ÊÇÔÚ¶ÁÈ¡job  ·ñÔòÒª¶ªÆúÊı¾İ£¨Êı¾İÁ¿³¬¹ıÁËÅäÖÃÎÄ¼şÔÊĞíµÄ·¶Î§£©
         job_data_bytes = min(extra_bytes, c->in_job->r.body_size);//job_data_bytesÈç¹ûµÈÓÚbody_size  ÄÇÃ´ËµÃ÷Õâ¸öbodyÒ²ÒÑ¾­¶ÁÈ¡½áÊøÁË
         memcpy(c->in_job->body, c->cmd + c->cmd_len, job_data_bytes);//¿½±´ÕıÈ·µÄbodyÊı¾İµ½ÕıÈ·µÄÎ»ÖÃ
         c->in_job_read = job_data_bytes;
-    } else if (c->in_job_read) {
+    } else if (c->in_job_read) {//×ßµ½ÕâÀïÊÇÒªÈÓµôµÄÊı¾İ
         /* we are in bit-bucket mode, throwing away data */
         job_data_bytes = min(extra_bytes, c->in_job_read);
         c->in_job_read -= job_data_bytes;
@@ -1143,7 +1143,7 @@ maybe_enqueue_incoming_job(Conn *c) //Ğ£ÑéjobÊı¾İÊÇ·ñ¶ÁÈ¡Íê±Ï£¬ÍêÁËÔòÈëtubeµÄ¶ÓÁ
     if (c->in_job_read == j->r.body_size) return enqueue_incoming_job(c);//ÈÎÎñÊı¾İÒÑ¾­¶ÁÈ¡Íê±Ï£¬Èë¶ÓÁĞ£¨ready»òÕßdelay¶ÓÁĞ£©
 
     /* otherwise we have incomplete data, so just keep waiting */
-    c->state = STATE_WANTDATA;//ÈÎÎñÊı¾İÃ»ÓĞ¶ÁÈ¡Íê±Ï£¬ÔòÉèÖÃ¿Í»§¶Ëconn×´Ì¬Î´µÈ´ı½ÓÊÕÊı¾İSTATE_WANTDATA
+    c->state = STATE_WANTDATA;//ÈÎÎñÊı¾İÃ»ÓĞ¶ÁÈ¡Íê±Ï£¬ÔòÉèÖÃ¿Í»§¶Ëconn×´Ì¬Î´µÈ´ı½ÓÊÕÊı¾İSTATE_WANTDATA  ¼ÌĞø´Ó¿Í»§¶Ë¶ÁÈëÊı¾İ
 }
 
 /* j can be NULL */
@@ -1315,7 +1315,7 @@ dispatch_cmd(Conn *c)
         errno = 0;
         timeout = strtol(c->cmd + CMD_RESERVE_TIMEOUT_LEN, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
-    case OP_RESERVE: /* FALLTHROUGH */ //reserve
+    case OP_RESERVE: /* FALLTHROUGH */ //reserve ÆäÊµºÍputÊÇÏà·´µÄ
         /* don't allow trailing garbage */
         if (type == OP_RESERVE && c->cmd_len != CMD_RESERVE_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
@@ -1763,7 +1763,7 @@ conn_data(Conn *c)//¿Í»§¶ËÊı¾İ½»»¥£¨¸ù¾İ¿Í»§¶Ë×´Ì¬²»Í¬Ö´ĞĞ²»Í¬µÄ¶ÁĞ´²Ù×÷£©
         j = c->out_job;
 
         iov[0].iov_base = (void *)(c->reply + c->reply_sent);
-        iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0 */
+        iov[0].iov_len = c->reply_len - c->reply_sent; /* maybe 0   Õâ¸öÖµ¿ÉÄÜÊÇ0 ÕâÖÖÇé¿öÏÂÖ»ĞèÒª·¢job¾ÍºÃÁË*/
         iov[1].iov_base = j->body + c->out_job_sent;
         iov[1].iov_len = j->r.body_size - c->out_job_sent;
 
