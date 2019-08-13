@@ -346,7 +346,7 @@ reply_line(Conn *c, int state, const char *fmt, ...)
 }
 
 static void
-reply_job(Conn *c, job j, const char *word)
+reply_job(Conn *c, job j, const char *word)//发送job（带着job前面的一行协议）
 {
     /* tell this connection which job to send */
     c->out_job = j;
@@ -663,7 +663,7 @@ remove_ready_job(job j)
 }
 
 static void
-enqueue_waiting_conn(Conn *c)
+enqueue_waiting_conn(Conn *c)//将客户端放入各个tube的waiting列表中
 {
     tube t;
     size_t i;
@@ -686,7 +686,7 @@ find_reserved_job_in_conn(Conn *c, job j)//检查job是否被c  Reserved
 static job
 touch_job(Conn *c, job j)
 {
-    j = find_reserved_job_in_conn(c, j);//若job的订阅者(reserver)是当前连接，且job的状态是Reserved，返回该Job
+    j = find_reserved_job_in_conn(c, j);//若job的订阅者(reserver)是当前连接的终端，且job的状态是Reserved，返回该Job
     if (j) {
         j->r.deadline_at = nanoseconds() + j->r.ttr;// 重新设置该job的过期时间(j->r.deadline_at字段)值为：j->ttr+now()
         c->soonest_job = NULL;
@@ -988,7 +988,7 @@ read_ttr(int64 *ttr, const char *buf, char **end)
 
 /* Read a tube name from the given buffer moving the buffer to the name start */
 static int
-read_tube_name(char **tubename, char *buf, char **end)
+read_tube_name(char **tubename, char *buf, char **end)//读取tube name
 {
     size_t len;
 
@@ -1041,7 +1041,7 @@ do_stats(Conn *c, fmt_fn fmt, void *data)
 }
 
 static void
-do_list_tubes(Conn *c, ms l)//发送所有l 里面 tube名字给客户端
+do_list_tubes(Conn *c, ms l)//发送所有l 里面 tube名字给客户端   返回的形式包装在一个job里面
 {
     char *buf;
     tube t;
@@ -1330,7 +1330,7 @@ dispatch_cmd(Conn *c)
 
         /* try to get a new job for this guy */
         wait_for_job(c, timeout); //设置当前客户端正在等待job  该函数的功能是：修改当前连接的状态为STATE_WAIT，并把该连接添加到，watch的tube的waiting数组中。然后把当前连接添加到dirty链表中。
-        process_queue();
+        process_queue();//检查所有tube 看是不是有已经准备好的job 分发给客户端
         break;
     case OP_DELETE://beanstalked删除其实 使用了哈希表来加快速度 通过id找到job 然后分别从 reserve reday buried delayed里面删除（从大顶堆或者链表里面删除）链表因为是双向链表 所以删除是O(1)  堆里面删除因为job记录了在队里的索引 所以删除也是O(1) 当然堆得调整排除在外
         errno = 0;
@@ -1443,7 +1443,7 @@ dispatch_cmd(Conn *c)
             return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
         }
         break;
-    case OP_TOUCH:
+    case OP_TOUCH://The touch command allows a worker to request more time to work on a job.  也就是说touch是一个worker在处理一个任务时，可能快要超时了 touch让这个job的超时时间推后
         errno = 0;
         id = strtoull(c->cmd + CMD_TOUCH_LEN, &end_buf, 10);
         if (errno) return twarn("strtoull"), reply_msg(c, MSG_BAD_FORMAT);
@@ -1493,7 +1493,7 @@ dispatch_cmd(Conn *c)
         do_stats(c, (fmt_fn) fmt_stats_tube, t);
         t = NULL;
         break;
-    case OP_LIST_TUBES:
+    case OP_LIST_TUBES://以job的形式返回所有的列表
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_LIST_TUBES_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
@@ -1502,7 +1502,7 @@ dispatch_cmd(Conn *c)
         op_ct[type]++;
         do_list_tubes(c, &tubes);
         break;
-    case OP_LIST_TUBE_USED:
+    case OP_LIST_TUBE_USED://返回正在使用的tube的名字  USING default\r\n
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_LIST_TUBE_USED_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);

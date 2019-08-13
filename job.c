@@ -187,7 +187,7 @@ job_copy(job j)//拷贝一个job  但是去除一些不能拷贝的属性
 
     n->file = NULL; /* copies do not have refcnt on the wal */
 
-    n->tube = 0; /* Don't use memcpy for the tube, which we must refcount. */
+    n->tube = 0; /* Don't use memcpy for the tube, which we must refcount.    注意引用计数 所以要置为空格 然后用下方的宏来赋值*/
     TUBE_ASSIGN(n->tube, j->tube);
 
     /* Mark this job as a copy so it can be appropriately freed later on */
