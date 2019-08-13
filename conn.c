@@ -107,7 +107,7 @@ has_reserved_job(Conn *c)
 
 
 static int64
-conntickat(Conn *c)//计算当前客户端待发生的某个事件的时间
+conntickat(Conn *c)//计算当前客户端待发生的某个事件的时间 事件1 正在reserved的job ttr要过期的时间  事件2 客户端wait时间超时    看哪个事件优先发生
 {
     int margin = 0, should_timeout = 0;
     int64 t = INT64_MAX;
@@ -133,7 +133,7 @@ conntickat(Conn *c)//计算当前客户端待发生的某个事件的时间
 
 
 void
-connwant(Conn *c, int rw)
+connwant(Conn *c, int rw)//pending_timeout 以及保留的job过期时间会被参考，决定在conn堆里面的的排序
 {
     c->rw = rw;//c->rw记录当前客户端关心的socket事件
     connsched(c);
@@ -141,7 +141,7 @@ connwant(Conn *c, int rw)
 
 
 void
-connsched(Conn *c)
+connsched(Conn *c)//根据tickat的优先级来决定client 在conns里面的位置
 {
     if (c->tickpos > -1) {
         heapremove(&c->srv->conns, c->tickpos);

@@ -73,7 +73,7 @@ make_and_insert_tube(const char *name)//往全局tubes集合中增加一个名字叫做name的t
 }
 
 tube
-tube_find(const char *name)//全局tubes里面查找叫做name的tube
+tube_find(const char *name)//全局tubes集合里面查找叫做name的tube
 {
     tube t;
     size_t i;

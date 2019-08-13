@@ -284,7 +284,7 @@ buried_job_p(tube t)//返回当前tube buried的任务
 }
 
 static void
-reply(Conn *c, char *line, int len, int state)//调用reply函数；只是将数据写入到输出缓冲区，并修改了客户端状态为  
+reply(Conn *c, char *line, int len, int state)//调用reply函数；只是将数据写入到输出缓冲区，并修改了客户端状态为     注册了写事件
 {
     if (!c) return;
 
@@ -1007,9 +1007,9 @@ wait_for_job(Conn *c, int timeout)//该函数的功能是：修改当前连接的状态为STATE_WA
     enqueue_waiting_conn(c);//将客户端添加到其监听的所有tube的waiting队列中
 
     /* Set the pending timeout to the requested timeout amount */
-    c->pending_timeout = timeout;//设置客户端的超时时间 默认为-1
+    c->pending_timeout = timeout;//设置客户端的超时时间 默认为-1   connwant(Conn *c, int rw)//pending_timeout 会被参考，决定在conn堆里面的的排序
 
-    connwant(c, 'h'); // only care if they hang up
+    connwant(c, 'h'); // only care if they hang up  当一个终端只是等待有JOB  reday时,其实只要关注终端网络是否断开就好
     c->next = dirty;
     dirty = c;
 }
@@ -1253,7 +1253,7 @@ dispatch_cmd(Conn *c)
         maybe_enqueue_incoming_job(c); //校验job数据是否读取完毕，完了则入tube的队列
 
         break;
-    case OP_PEEK_READY:
+    case OP_PEEK_READY://所谓peek就是只是拿到，而不去删除或改变状态    获取当前处于reday的元素   注意所有peek的job都是copy的
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_PEEK_READY_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
@@ -1264,11 +1264,11 @@ dispatch_cmd(Conn *c)
             j = job_copy(c->use->ready.data[0]);
         }
 
-        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
+        if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);//NOT_FOUND\r\n
 
         reply_job(c, j, MSG_FOUND);
         break;
-    case OP_PEEK_DELAYED:
+    case OP_PEEK_DELAYED://获取放在delay堆里面的一个job
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_PEEK_DELAYED_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
@@ -1283,7 +1283,7 @@ dispatch_cmd(Conn *c)
 
         reply_job(c, j, MSG_FOUND);
         break;
-    case OP_PEEK_BURIED:
+    case OP_PEEK_BURIED://获取已经被buried的job
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_PEEK_BURIED_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
@@ -1443,14 +1443,14 @@ dispatch_cmd(Conn *c)
             return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
         }
         break;
-    case OP_TOUCH://The touch command allows a worker to request more time to work on a job.  也就是说touch是一个worker在处理一个任务时，可能快要超时了 touch让这个job的超时时间推后
+    case OP_TOUCH://The touch command allows a worker to request more time to work on a job.  也就是说touch是一个worker在处理一个任务时，可能快要超时了 touch让这个job的超时时间推后   
         errno = 0;
         id = strtoull(c->cmd + CMD_TOUCH_LEN, &end_buf, 10);
         if (errno) return twarn("strtoull"), reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
 
-        j = touch_job(c, job_find(id));//job_find()函数的功能是：从全局变量all_jobs哈希表中查找对应id的job。
+        j = touch_job(c, job_find(id));//job_find()函数的功能是：从全局变量all_jobs哈希表中查找对应id的job。  touch_job针对这个job 将dead时间增加ttr  延长RESERVE_TIMEOUT的时间
 
         if (j) {
             reply(c, MSG_TOUCHED, MSG_TOUCHED_LEN, STATE_SENDWORD);
@@ -1663,12 +1663,12 @@ do_cmd(Conn *c)//命令执行的入口函数
 static void
 reset_conn(Conn *c)//改为需要读取fd 重置信息 重置为STATE_WANTCOMMAND
 {
-    connwant(c, 'r');
-    c->next = dirty;
+    connwant(c, 'r');//设置读取事件
+    c->next = dirty;//加入dirty列表
     dirty = c;
 
     /* was this a peek or stats command? */
-    if (c->out_job && c->out_job->r.state == Copy) job_free(c->out_job);
+    if (c->out_job && c->out_job->r.state == Copy) job_free(c->out_job);//如果out_job是拷贝出来的job  那么要释放内存
     c->out_job = NULL;
 
     c->reply_sent = 0; /* now that we're done, reset this */

@@ -213,7 +213,7 @@ job_list_any_p(job head)//检查是否是在一个链表里面
 }
 
 job
-job_remove(job j)//将一个job从单亲链表里面解除出来
+job_remove(job j)//将一个job从单亲链表里面解除出来  比如从reverse 链表里面拿出来
 {
     if (!j) return NULL;
     if (!job_list_any_p(j)) return NULL; /* not in a doubly-linked list */

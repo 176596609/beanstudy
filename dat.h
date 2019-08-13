@@ -269,11 +269,11 @@ struct Conn {
     char   type;//CONN_TYPE_PRODUCER CONN_TYPE_WORKER 还是CONN_TYPE_WAITING
     Conn   *next;// 下一个Conn的指针
     tube   use;//指向当前使用的tube put命令发布的job会插入到当前tube中  一个客户肯定use一个tube 默认是default tube
-    int64  tickat;      // time at which to do more work     //客户端处理job的TTR到期时间；或者客户端阻塞的到期时间；
-    int    tickpos;     // position in srv->conns   // 在srv->conns堆里的位置  //c->tickpos记录当前客户端在srv->conns堆的索引；（思考：tickpos在什么时候赋值的？heap的函数指针rec）
+    int64  tickat;      // time at which to do more work     //客户端处理job的TTR到期时间；或者客户端阻塞的到期时间；  两者取较早的哪个时间
+    int    tickpos;     // position in srv->conns   // 在srv->conns堆里的位置  //c->tickpos记录当前客户端在srv->conns堆的索引；（思考：tickpos在什么时候赋值的？答：heap的函数指针rec）
     job    soonest_job; // memoization of the soonest job  记录了j->r.deadline_at最小的那个job  应该是ttr最早要过期的job
     int    rw;          // currently want: 'r', 'w', or 'h'
-    int    pending_timeout; //客户端获取job而阻塞的到期时间 默认为-1  reserve-with-timeout命令可以设置超时时间
+    int    pending_timeout; //客户端获取job而阻塞（阻塞不太恰当 应当理解为等待reday job的最长时间）的到期时间 默认为-1  reserve-with-timeout命令可以设置超时时间
     char   halfclosed;//表示客户端断开连接
 
     char cmd[LINE_BUF_SIZE]; // this string is NOT NUL-terminated
@@ -283,7 +283,7 @@ struct Conn {
     char *reply;//输出数据缓冲区
     int  reply_len;//输出数据缓存区的长度
     int  reply_sent;//输出缓存区已经发给客户端数据的长度 如果reply_sent==reply_len那么说明发送完毕了
-    char reply_buf[LINE_BUF_SIZE]; // this string IS NUL-terminated
+    char reply_buf[LINE_BUF_SIZE]; // this string IS NUL-terminated  一个输出缓存区  上面的reply指针可能指向reply_buf
 
     // How many bytes of in_job->body have been read so far. If in_job is NULL
     // while in_job_read is nonzero, we are in bit bucket mode and
@@ -293,7 +293,7 @@ struct Conn {
     job in_job; // a job to be read from the client   正在读取进入的job缓存
 
     job out_job;// 待返回给客户端的job
-    int out_job_sent;
+    int out_job_sent;//已经发送的job字节数
 
     struct ms  watch;//当前客户端监听的所有tube集合
     struct job reserved_jobs; // linked list header 这个链表是当前消费者已经获取ready的job   也就是用户获取正在处理但是还没有删除的job
@@ -380,7 +380,7 @@ struct Server {
 
     Wal    wal;
     Socket sock;//监听的socket
-    Heap   conns;//存储即将有事件发生的客户端；按照事件发生的时间排序的最小堆； //例如：当客户端获取job后，若超过TTR时间没处理完，job会状态应重置为ready状态； //当客户端调用reserve获取job但当前tube没有ready状态的job时，客户端会被阻塞timeout时间；
+    Heap   conns;//存储即将有事件发生的客户端；按照事件发生的时间排序的最小堆； //例如：当客户端获取job后，若超过TTR时间没处理完，job会状态应重置为ready状态； //当客户端调用reserve获取job但当前tube没有ready状态的job时，客户端等待timeout的时间；
 };
 void srvserve(Server *srv);
 void srvaccept(Server *s, int ev);
