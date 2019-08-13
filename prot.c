@@ -306,14 +306,14 @@ protrmdirty(Conn *c)//客户端关闭 摘除当前节点
 {
     Conn *x, *newdirty = NULL;
 
-    while (dirty) {
+    while (dirty) {//遍历dirty列表
         x = dirty;
         dirty = dirty->next;
-        x->next = NULL;
+        x->next = NULL;//当前节点从链表中摘下来
 
-        if (x != c) {
+        if (x != c) {//如果当前节点不是要删除的客户端 那么就走入下面的逻辑 形成新的dirty列表
             x->next = newdirty;
-            newdirty = x;
+            newdirty = x;//新的dirty
         }
     }
     dirty = newdirty;
@@ -513,7 +513,7 @@ bury_job(Server *s, job j, char update_store)
 }
 
 void
-enqueue_reserved_jobs(Conn *c)
+enqueue_reserved_jobs(Conn *c)//reserved的job全部回归reday队列
 {
     int r;
     job j;
@@ -540,7 +540,7 @@ delay_q_take()
 }
 
 static int
-kick_buried_job(Server *s, job j)
+kick_buried_job(Server *s, job j)//将BURIED的job踢到reday里面
 {
     int r;
     int z;
@@ -556,7 +556,7 @@ kick_buried_job(Server *s, job j)
     if (r == 1) return 1;
 
     /* ready queue is full, so bury it */
-    bury_job(s, j, 0);
+    bury_job(s, j, 0);//失败了 还是放回bury列表里面
     return 0;
 }
 
@@ -575,7 +575,7 @@ get_delayed_job_ct()
 }
 
 static int
-kick_delayed_job(Server *s, job j)
+kick_delayed_job(Server *s, job j)//将delayed的job踢回reday队列
 {
     int r;
     int z;
@@ -595,13 +595,13 @@ kick_delayed_job(Server *s, job j)
     if (r == 1) return 0;
 
     /* last resort */
-    bury_job(s, j, 0);
+    bury_job(s, j, 0);//如果失败了 那么会放入bury队列
     return 0;
 }
 
 /* return the number of jobs successfully kicked */
 static uint
-kick_buried_jobs(Server *s, tube t, uint n)
+kick_buried_jobs(Server *s, tube t, uint n)//将n个处于buried状态的job踢回ready队列  
 {
     uint i;
     for (i = 0; (i < n) && buried_job_p(t); ++i) {
@@ -622,7 +622,7 @@ kick_delayed_jobs(Server *s, tube t, uint n)
 }
 
 static uint
-kick_jobs(Server *s, tube t, uint n)
+kick_jobs(Server *s, tube t, uint n)//kick 最多n个buried或者dealy的job到reday队列里面
 {
     if (buried_job_p(t)) return kick_buried_jobs(s, t, n);
     return kick_delayed_jobs(s, t, n);
@@ -1017,7 +1017,7 @@ wait_for_job(Conn *c, int timeout)//该函数的功能是：修改当前连接的状态为STATE_WA
 typedef int(*fmt_fn)(char *, size_t, void *);
 
 static void
-do_stats(Conn *c, fmt_fn fmt, void *data)
+do_stats(Conn *c, fmt_fn fmt, void *data)//发送函数fmt生成的统计数据到客户端   详细数据其实是以job的形式给到客户端的  因为是copy 属性的job 因此发送结束后会被delete掉
 {
     int r, stats_len;
 
@@ -1395,7 +1395,7 @@ dispatch_cmd(Conn *c)
         bury_job(c->srv, j, 0);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
-    case OP_BURY:
+    case OP_BURY://将当前client RESERVED的job放入READY队列
         errno = 0;
         id = strtoull(c->cmd + CMD_BURY_LEN, &pri_buf, 10);  //获取参数：bury的job的id
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
@@ -1413,7 +1413,7 @@ dispatch_cmd(Conn *c)
         if (!r) return reply_serr(c, MSG_INTERNAL_ERROR);
         reply(c, MSG_BURIED, MSG_BURIED_LEN, STATE_SENDWORD);
         break;
-    case OP_KICK:
+    case OP_KICK://kick 最多n个buried或者dealy的job到reday队列里面
         errno = 0;
         count = strtoul(c->cmd + CMD_KICK_LEN, &end_buf, 10);
         if (end_buf == c->cmd + CMD_KICK_LEN) {
@@ -1426,7 +1426,7 @@ dispatch_cmd(Conn *c)
         i = kick_jobs(c->srv, c->use, count);
 
         return reply_line(c, STATE_SENDWORD, "KICKED %u\r\n", i);
-    case OP_JOBKICK:
+    case OP_JOBKICK://将特定ID的Buried或DELAYED的job踢回reday列表
         errno = 0;
         id = strtoull(c->cmd + CMD_JOBKICK_LEN, &end_buf, 10);
         if (errno) return twarn("strtoull"), reply_msg(c, MSG_BAD_FORMAT);
@@ -1458,7 +1458,7 @@ dispatch_cmd(Conn *c)
             return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
         }
         break;
-    case OP_STATS:
+    case OP_STATS://返回当前服务器的统计信息 统计函数是fmt_stats
         /* don't allow trailing garbage */
         if (c->cmd_len != CMD_STATS_LEN + 2) {
             return reply_msg(c, MSG_BAD_FORMAT);
@@ -1468,20 +1468,20 @@ dispatch_cmd(Conn *c)
 
         do_stats(c, fmt_stats, c->srv);
         break;
-    case OP_JOBSTATS:
+    case OP_JOBSTATS://返回某个job的信息  统计函数fmt_job_stats
         errno = 0;
         id = strtoull(c->cmd + CMD_JOBSTATS_LEN, &end_buf, 10);
         if (errno) return reply_msg(c, MSG_BAD_FORMAT);
 
         op_ct[type]++;
 
-        j = peek_job(id);
+        j = peek_job(id);//只是对job_find的封装
         if (!j) return reply(c, MSG_NOTFOUND, MSG_NOTFOUND_LEN, STATE_SENDWORD);
 
         if (!j->tube) return reply_serr(c, MSG_INTERNAL_ERROR);
         do_stats(c, (fmt_fn) fmt_job_stats, j);
         break;
-    case OP_STATS_TUBE:
+    case OP_STATS_TUBE://返回tube的状态 统计函数是fmt_stats_tube
         name = c->cmd + CMD_STATS_TUBE_LEN;
         if (!name_is_ok(name, 200)) return reply_msg(c, MSG_BAD_FORMAT);
 

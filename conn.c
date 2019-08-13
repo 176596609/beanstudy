@@ -217,10 +217,10 @@ connclose(Conn *c)
         printf("close %d\n", c->sock.fd);
     }
 
-    job_free(c->in_job);
+    job_free(c->in_job);//释放injob缓存
 
     /* was this a peek or stats command? */
-    if (c->out_job && !c->out_job->r.id) job_free(c->out_job);
+    if (c->out_job && !c->out_job->r.id) job_free(c->out_job);//释放输出job
 
     c->in_job = c->out_job = NULL;
     c->in_job_read = 0;
@@ -230,8 +230,8 @@ connclose(Conn *c)
 
     cur_conn_ct--; /* stats */
 
-    remove_waiting_conn(c);
-    if (has_reserved_job(c)) enqueue_reserved_jobs(c);//当前自己没处理完reserved job放回ready 堆
+	remove_waiting_conn(c);//从当前客户端conn监听的所有tube的waiting队列中移除自己
+    if (has_reserved_job(c)) enqueue_reserved_jobs(c);//当前自己没处理完reserved 的job放回ready 堆  以便别的消费者可以消费 以免丢失
 
     ms_clear(&c->watch);
     c->use->using_ct--;
