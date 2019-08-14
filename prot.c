@@ -433,7 +433,7 @@ process_queue()  //检查有没有消费者正在阻塞等待此tube产生job，若有需要返回job； 
 }
 
 static job
-delay_q_peek()
+delay_q_peek()//遍历所有tube的delay队列(堆)中过期时间已经到达或者即将的job（即将到达时间最小的job） peek的意思就是我只看一下 偷窥
 {
     int i;
     tube t;
@@ -1861,19 +1861,19 @@ prottick(Server *s)
     int64 now;
     int i;
     tube t;
-    int64 period = 0x34630B8A000LL; /* 1 hour in nanoseconds */
+    int64 period = 0x34630B8A000LL; /* 1 hour in nanoseconds 换句话说epoll最长等待1个小时*/
     int64 d;
 
     now = nanoseconds();
-    while ((j = delay_q_peek())) {//1）将状态为delay的且已经到期的job移到ready队列；  遍历所有tube的delay队列中过期时间已经到达或者即将的job（即将到达时间最小） peek的意思就是我只看一下
+    while ((j = delay_q_peek())) {//1）将状态为delay的且已经到期的job移到ready队列；  遍历所有tube的delay队列中过期时间已经到达或者即将的job（即将到达时间最小） peek的意思就是我只看一下 偷窥
         d = j->r.deadline_at - now;
-        if (d > 0) {
+        if (d > 0) {//最小的到达超时delay的时间 都大于0，后面的就不要看了
             period = min(period, d);//即将到达，更新period
             break;
         }
         j = delay_q_take();//d<0 说明已经有delay的任务到期了 delay_q_take的实现方式其实就是delay_q_peek获取时间最小的job 然后从delay堆里面删除这个job
-        r = enqueue_job(s, j, 0, 0);
-        if (r < 1) bury_job(s, j, 0); /* out of memory, so bury it */
+        r = enqueue_job(s, j, 0, 0);//加入ready队列
+        if (r < 1) bury_job(s, j, 0); /* out of memory, so bury it  加入reday队列的时候可能会发现内存不足 那么继续放入bury列表*/
     }
 
     for (i = 0; i < tubes.used; i++) {//2）tube暂停时间到达，如果tube存在消费者阻塞等待获取job，需要返回job给客户端；

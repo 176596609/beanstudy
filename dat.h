@@ -269,7 +269,7 @@ struct Conn {
     char   type;//CONN_TYPE_PRODUCER CONN_TYPE_WORKER 还是CONN_TYPE_WAITING
     Conn   *next;// 下一个Conn的指针
     tube   use;//指向当前使用的tube put命令发布的job会插入到当前tube中  一个客户肯定use一个tube 默认是default tube
-    int64  tickat;      // time at which to do more work     //客户端处理job的TTR到期时间；或者客户端阻塞的到期时间；  两者取较早的哪个时间
+    int64  tickat;      // time at which to do more work     //客户端处理job的TTR到期时间；或者客户端阻塞（等待job的时间）的到期时间；  两者取较早的哪个时间
     int    tickpos;     // position in srv->conns   // 在srv->conns堆里的位置  //c->tickpos记录当前客户端在srv->conns堆的索引；（思考：tickpos在什么时候赋值的？答：heap的函数指针rec）
     job    soonest_job; // memoization of the soonest job  记录了j->r.deadline_at最小的那个job  应该是ttr最早要过期的job
     int    rw;          // currently want: 'r', 'w', or 'h'
