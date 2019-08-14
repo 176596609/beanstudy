@@ -73,13 +73,13 @@ main(int argc, char **argv)
         // We want to make sure that only one beanstalkd tries
         // to use the wal directory at a time. So acquire a lock
         // now and never release it.
-        if (!waldirlock(&srv.wal)) {
+        if (!waldirlock(&srv.wal)) {//抢占目录锁 抢占不到 进程退出
             twarnx("failed to lock wal dir %s", srv.wal.dir);
             exit(10);
         }
 
         list.prev = list.next = &list;
-        walinit(&srv.wal, &list);
+        walinit(&srv.wal, &list);//反初始化 序列化的job 恢复机制
         r = prot_replay(&srv, &list);
         if (!r) {
             twarnx("failed to replay log");

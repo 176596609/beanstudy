@@ -319,22 +319,22 @@ enum
 };
 
 struct Wal {
-    int    filesize;
-    int    use;
+    int    filesize;//每个binlog的大小
+    int    use;//是否开启binlog
     char   *dir;
-    File   *head;
+    File   *head;//binlog文件列表
     File   *cur;
     File   *tail;
-    int    nfile;
-    int    next;
+    int    nfile;//binlog的个数
+    int    next;//下一个可以用的日志文件
     int    resv;  // bytes reserved
     int    alive; // bytes in use
     int64  nmig;  // migrations
     int64  nrec;  // records written ever
-    int    wantsync;
-    int64  syncrate;
+    int    wantsync; //0 不调用fsync  1 调用fsync
+    int64  syncrate;//刷硬盘的时间
     int64  lastsync;
-    int    nocomp; // disable binlog compaction?
+    int    nocomp; // disable binlog compaction?  是否收缩binlog
 };
 int  waldirlock(Wal*);
 void walinit(Wal*, job list);
@@ -347,14 +347,14 @@ void walgc(Wal*);
 
 struct File {
     File *next;
-    uint refs;
-    int  seq;
+    uint refs;//文件的引用计数  如果引用计数为0 那么这个binlog将会被删除
+    int  seq;//第n个binlog
     int  iswopen; // is open for writing
-    int  fd;
+    int  fd;//当前binlog的fd
     int  free;
     int  resv;
-    char *path;
-    Wal  *w;
+    char *path;//当前binlog的磁盘位置
+    Wal  *w;//指向 Wal  *
 
     struct job jlist; // jobs written in this file
 };

@@ -20,7 +20,7 @@ static int reserve(Wal *w, int n);
 // If no files are found, sets w->next to 1 and
 // returns a large number.
 static int
-walscandir(Wal *w)
+walscandir(Wal *w)//遍历文件夹 获取所有的binlog日志文件
 {
     static char base[] = "binlog.";
     static const int len = sizeof(base) - 1;
@@ -51,7 +51,7 @@ walscandir(Wal *w)
 
 
 void
-walgc(Wal *w)
+walgc(Wal *w)//如果引用计数为0 那么删除在binlog链表里面摘除这个文件  然后删除这个文件
 {
     File *f;
 
@@ -439,7 +439,7 @@ waldirlock(Wal *w)
 
 
 void
-walread(Wal *w, job list, int min, int max)
+walread(Wal *w, job list, int min, int max)//min是第一个binlog的序列号 max是最后一个序列号+1
 {
     File *f;
     int i, fd;
@@ -458,8 +458,8 @@ walread(Wal *w, job list, int min, int max)
             exit(1);
         }
 
-        fd = open(f->path, O_RDONLY);
-        if (fd < 0) {
+        fd = open(f->path, O_RDONLY);//打开当前binlog
+        if (fd < 0) {//文件如果被占用的话 binlog可能会丢失
             twarn("open %s", f->path);
             free(f->path);
             free(f);
@@ -472,7 +472,7 @@ walread(Wal *w, job list, int min, int max)
         close(fd);
     }
 
-    if (err) {
+    if (err) {//有1个或者n个binlog读取出错
         warnx("Errors reading one or more WAL files.");
         warnx("Continuing. You may be missing data.");
     }
@@ -484,7 +484,7 @@ walinit(Wal *w, job list)
 {
     int min;
 
-    min = walscandir(w);
+    min = walscandir(w);//beanstalked 序列化是靠N个文件实现的 binlog.1  binlog.2....
     walread(w, list, min, w->next);
 
     // first writable file

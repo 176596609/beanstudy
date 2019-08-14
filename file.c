@@ -51,7 +51,7 @@ enum
 };
 
 void
-fileincref(File *f)
+fileincref(File *f)//增加文件的引用计数
 {
     if (!f) return;
     f->refs++;
@@ -59,12 +59,12 @@ fileincref(File *f)
 
 
 void
-filedecref(File *f)
+filedecref(File *f)//减少文件的引用计数  注意引用计数为0的话 文件会被删除
 {
     if (!f) return;
     f->refs--;
     if (f->refs < 1) {
-        walgc(f->w);
+        walgc(f->w);//如果引用计数为0 那么删除在binlog链表里面摘除这个文件  然后删除这个文件
     }
 }
 
@@ -108,16 +108,16 @@ fileread(File *f, job list)
 {
     int err = 0, v;
 
-    if (!readfull(f, &v, sizeof(v), &err, "version")) {
+    if (!readfull(f, &v, sizeof(v), &err, "version")) {//读取版本号
         return err;
     }
     switch (v) {
-    case Walver:
+    case Walver://版本7
         fileincref(f);
         while (readrec(f, list, &err));
         filedecref(f);
         return err;
-    case Walver5:
+    case Walver5://版本5
         fileincref(f);
         while (readrec5(f, list, &err));
         filedecref(f);
@@ -133,7 +133,7 @@ fileread(File *f, job list)
 // If an error occurs, it sets *err to 1.
 // Readrec returns the number of records read, either 1 or 0.
 static int
-readrec(File *f, job l, int *err)
+readrec(File *f, job l, int *err)//返回读取到多少个job
 {
     int r, sz = 0;
     int namelen;
@@ -142,30 +142,30 @@ readrec(File *f, job l, int *err)
     tube t;
     char tubename[MAX_TUBE_NAME_LEN];
 
-    r = read(f->fd, &namelen, sizeof(int));
+    r = read(f->fd, &namelen, sizeof(int));//获取tubename的长度
     if (r == -1) {
         twarn("read");
         warnpos(f, 0, "error");
         *err = 1;
         return 0;
     }
-    if (r != sizeof(int)) {
+    if (r != sizeof(int)) {//连4个字节（狭义的）都没读取到 退出
         return 0;
     }
     sz += r;
-    if (namelen >= MAX_TUBE_NAME_LEN) {
+    if (namelen >= MAX_TUBE_NAME_LEN) {//tubename大于限制  退出
         warnpos(f, -r, "namelen %d exceeds maximum of %d", namelen, MAX_TUBE_NAME_LEN - 1);
         *err = 1;
         return 0;
     }
 
-    if (namelen < 0) {
+    if (namelen < 0) {//tube 那么读取出错
         warnpos(f, -r, "namelen %d is negative", namelen);
         *err = 1;
         return 0;
     }
 
-    if (namelen) {
+    if (namelen) {//读取tube name
         r = readfull(f, tubename, namelen, err, "tube name");
         if (!r) {
             return 0;
@@ -174,14 +174,14 @@ readrec(File *f, job l, int *err)
     }
     tubename[namelen] = '\0';
 
-    r = readfull(f, &jr, sizeof(Jobrec), err, "job struct");
+    r = readfull(f, &jr, sizeof(Jobrec), err, "job struct");//读取job的描述结构体Jobrec出来
     if (!r) {
         return 0;
     }
     sz += r;
 
     // are we reading trailing zeroes?
-    if (!jr.id) return 0;
+    if (!jr.id) return 0;//说明读到结尾了
 
     j = job_find(jr.id);
     if (!(j || namelen)) {
@@ -195,27 +195,27 @@ readrec(File *f, job l, int *err)
     }
 
     switch (jr.state) {
-    case Reserved:
+    case Reserved://被客户端保留的任务要放回ready队列
         jr.state = Ready;
     case Ready:
     case Buried:
     case Delayed:
         if (!j) {
-            if (jr.body_size > job_data_size_limit) {
+            if (jr.body_size > job_data_size_limit) {//job的大小超过限度  退出
                 warnpos(f, -r, "job %"PRIu64" is too big (%"PRId32" > %zu)",
                         jr.id,
                         jr.body_size,
                         job_data_size_limit);
                 goto Error;
             }
-            t = tube_find_or_make(tubename);
+            t = tube_find_or_make(tubename);//创建（或找到）对应的tube
             j = make_job_with_id(jr.pri, jr.delay, jr.ttr, jr.body_size,
-                                 t, jr.id);
+                                 t, jr.id);//job加入tube
             j->next = j->prev = j;
             j->r.created_at = jr.created_at;
         }
         j->r = jr;
-        job_insert(l, j);
+        job_insert(l, j);//job加入一个链表
 
         // full record; read the job body
         if (namelen) {
@@ -224,7 +224,7 @@ readrec(File *f, job l, int *err)
                 warnpos(f, -r, "was %d, now %d", j->r.body_size, jr.body_size);
                 goto Error;
             }
-            r = readfull(f, j->body, j->r.body_size, err, "job body");
+            r = readfull(f, j->body, j->r.body_size, err, "job body");//读取body体
             if (!r) {
                 goto Error;
             }
@@ -397,7 +397,7 @@ Error:
 
 
 static int
-readfull(File *f, void *c, int n, int *err, char *desc)
+readfull(File *f, void *c, int n, int *err, char *desc)//从File *f读取  n个字节到void *c   err是输出的返回值。  desc是打印错误日志的输入
 {
     int r;
 
@@ -542,7 +542,7 @@ filewclose(File *f)
 
 
 int
-fileinit(File *f, Wal *w, int n)
+fileinit(File *f, Wal *w, int n)//初始化File *的几个参数
 {
     f->w = w;
     f->seq = n;
